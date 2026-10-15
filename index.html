@@ -1,0 +1,1704 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dodecahedron Rotations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap">
+<style>
+/* Layout: one-screen lecture demo, the companion to the cube and tetrahedron page. The list of rotations sits on the left, the dodecahedron in the middle, and a readout on the right tracks where the five inscribed cubes went. */
+:root {
+  --bg: #EFEEEC;
+  --surface: #FAFAF9;
+  --stage: #FCFBFA;
+  --stage-glow: #FFFFFF;
+  --ink: #1C1919;
+  --muted: #615B5A;
+  --rule: #D3CFCC;
+  --accent: #800000;
+  --accent-text: #800000;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #F4E7E5;
+  --d1: #1F5FA8; --d2: #B35C00; --d3: #2B7A4B; --d4: #6B3FA0; --d5: #B8326E;
+  --disc-ink: #FFFFFF;
+  --face: #C4BCB5;
+  --face-alpha: 0.3;
+  --ico: #800000;
+  --axis: #1C1919;
+  --coord: #9A9290;
+  --ghost: #7D7572;
+  --font-math: "STIX Two Text", "STIX Two Math", "Times New Roman", Times, serif;
+  --font-ui: "Source Sans 3", "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131111; --surface: #1D1A19; --stage: #191615; --stage-glow: #221E1D;
+    --ink: #ECE8E5; --muted: #A59E9A; --rule: #37302E;
+    --accent: #8E1B1B; --accent-text: #E39A9A; --accent-ink: #FFFFFF; --accent-soft: #3A1E1E;
+    --d1: #6FA8E8; --d2: #F0A04B; --d3: #5CC594; --d4: #B793E8; --d5: #F08AB8; --disc-ink: #141212;
+    --face: #A39A95; --face-alpha: 0.18; --ico: #E58E8E;
+    --axis: #F2EEEB; --coord: #7F7774; --ghost: #A0978F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131111; --surface: #1D1A19; --stage: #191615; --stage-glow: #221E1D;
+  --ink: #ECE8E5; --muted: #A59E9A; --rule: #37302E;
+  --accent: #8E1B1B; --accent-text: #E39A9A; --accent-ink: #FFFFFF; --accent-soft: #3A1E1E;
+  --d1: #6FA8E8; --d2: #F0A04B; --d3: #5CC594; --d4: #B793E8; --d5: #F08AB8; --disc-ink: #141212;
+  --face: #A39A95; --face-alpha: 0.18; --ico: #E58E8E;
+  --axis: #F2EEEB; --coord: #7F7774; --ghost: #A0978F;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.4;
+}
+i, .math { font-family: var(--font-math); }
+sub { font-size: 0.72em; line-height: 0; }
+
+.app {
+  height: 100%;
+  max-width: 1680px;
+  margin-inline: auto;
+  padding-inline: 16px;
+  padding-block: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Header */
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+.title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 16px; min-width: 0; }
+h1 {
+  margin: 0;
+  font-family: var(--font-math);
+  font-weight: 600;
+  font-size: clamp(1.45rem, 2.2vw, 2rem);
+  line-height: 1.1;
+  color: var(--accent-text);
+  text-wrap: balance;
+}
+.subtitle { margin: 0; font-family: var(--font-math); font-style: italic; font-size: 1.05rem; color: var(--muted); }
+.top-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* Buttons */
+.btn, .seg button, .tog {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0.5em 0.75em;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 600 0.92rem/1 var(--font-ui);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover, .seg button:hover, .tog:hover { border-color: var(--muted); }
+.btn:disabled { opacity: 0.45; cursor: default; border-color: var(--rule); }
+.btn:focus-visible, .seg button:focus-visible, .tog:focus-visible, .rot:focus-visible, .tl-col:focus-visible, input:focus-visible {
+  outline: 3px solid var(--accent-text);
+  outline-offset: 2px;
+}
+.btn.primary, .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.seg { display: inline-flex; }
+.seg button { border-radius: 0; margin-left: -1px; }
+.seg button:first-child { border-radius: 8px 0 0 8px; margin-left: 0; }
+.seg button:last-child { border-radius: 0 8px 8px 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); position: relative; }
+.seg.small button { padding: 0.42em 0.6em; font-size: 0.85rem; }
+.tog { padding: 0.38em 0.6em; font-weight: 600; font-size: 0.85rem; color: var(--muted); }
+.tog::before {
+  content: "";
+  width: 0.8em;
+  height: 0.8em;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+}
+.tog[aria-pressed="true"] { color: var(--ink); }
+.tog[aria-pressed="true"]::before { background: var(--accent-text); border-color: var(--accent-text); box-shadow: inset 0 0 0 2px var(--surface); }
+kbd {
+  padding: 0.1em 0.36em;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font: 600 0.7rem/1.2 var(--font-ui);
+  opacity: 0.6;
+}
+
+/* Three columns */
+.layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(290px, 345px) minmax(0, 1fr) minmax(270px, 320px);
+  gap: 16px;
+}
+.left { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+.tabs { align-self: flex-start; }
+.catalog, .coords, .readout { min-height: 0; overflow-y: auto; min-width: 0; }
+.catalog, .coords { flex: 1; }
+
+/* Stage */
+.stage { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.shows { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.bar-label {
+  font: 600 0.72rem var(--font-ui);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.viewport {
+  position: relative;
+  flex: 1;
+  min-height: 280px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: radial-gradient(circle at 50% 45%, var(--stage-glow), var(--stage) 70%);
+  overflow: hidden;
+}
+.viewport canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+  transition: opacity 170ms ease;
+}
+.viewport canvas.dragging { cursor: grabbing; }
+.viewport.fading canvas { opacity: 0.06; }
+.hint {
+  position: absolute;
+  left: 12px;
+  bottom: 8px;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  pointer-events: none;
+  transition: opacity 400ms ease;
+}
+.hint.gone { opacity: 0; }
+.playbar { flex-wrap: nowrap; }
+.playbar input[type="range"] { flex: 1; min-width: 60px; accent-color: var(--accent-text); }
+.live {
+  min-width: 7.4em;
+  font-family: var(--font-math);
+  font-size: 1.02rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+#btn-play { min-width: 7.6em; justify-content: space-between; }
+
+/* Catalog */
+.catalog { display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
+.cat-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 3px 10px; }
+.eyebrow {
+  margin: 0;
+  font: 600 0.75rem var(--font-ui);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.legend { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 0.8rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.sw { width: 0.95em; height: 0.95em; border-radius: 3px; border: 1px solid var(--rule); background: var(--surface); }
+.sw.pos { background: var(--accent); border-color: var(--accent); }
+.sw.move { border: 2px solid var(--accent-text); }
+.block { display: flex; flex-direction: column; gap: 5px; padding-top: 7px; border-top: 1px solid var(--rule); }
+.block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.block-head h3 { margin: 0; font: 600 1.08rem var(--font-math); }
+.block-head .count { font: 600 0.8rem var(--font-ui); color: var(--muted); font-variant-numeric: tabular-nums; }
+.block-note { margin: 0; font-size: 0.85rem; color: var(--muted); }
+.grp { display: flex; flex-direction: column; gap: 2px; }
+.grp.inline { flex-direction: row; align-items: center; justify-content: space-between; }
+.grp-label { margin: 0; font-size: 0.82rem; font-weight: 600; color: var(--ink); }
+.grp-label span { font-weight: 400; color: var(--muted); }
+.tbl { display: grid; grid-template-columns: 1.7em repeat(var(--cols), minmax(0, 1fr)); gap: 3px 4px; align-items: center; }
+.tbl.pairs { grid-template-columns: 2.55em minmax(0, 1fr) minmax(0, 1fr) 2.85em minmax(0, 1fr) minmax(0, 1fr); }
+.tbl.pairs > :nth-child(6n + 4) { padding-left: 0.3em; }
+.tbl.five { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.tbl.five .rot { font-size: 0.86rem; padding-inline: 0; }
+.colh { text-align: center; font-family: var(--font-math); font-size: 0.85rem; color: var(--muted); line-height: 1.1; }
+.rowh { display: flex; gap: 2px; font-family: var(--font-math); font-size: 0.95rem; color: var(--muted); }
+.chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px 4px; }
+.chips.one { display: flex; }
+.rot {
+  min-width: 0;
+  padding: 0.27em 0.2em;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 400 0.95rem/1.1 var(--font-math);
+  white-space: nowrap;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 160ms, color 160ms, box-shadow 160ms;
+}
+.chips.one .rot { padding-inline: 1.1em; }
+.rot:hover { border-color: var(--muted); }
+.rot.is-move { box-shadow: inset 0 0 0 2px var(--accent-text); border-color: var(--accent-text); }
+.rot.is-pos { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.rot.is-pos.is-move { box-shadow: inset 0 0 0 2px var(--accent-ink); }
+.block.muted h3 { color: var(--muted); }
+.sum { margin: 0; padding-top: 6px; border-top: 1px solid var(--rule); font-family: var(--font-math); font-size: 0.98rem; color: var(--muted); }
+
+/* Coordinates */
+.coords { display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
+.coords .block h3 { margin: 0; font: 600 1.08rem var(--font-math); }
+.coords .block p { margin: 0; font-size: 0.86rem; color: var(--muted); }
+.coords .block p .math, .coords .block p i { color: var(--ink); }
+.vlist { display: grid; grid-template-columns: auto auto auto auto; justify-content: space-between; gap: 2px 8px; align-items: center; font-family: var(--font-math); font-size: 0.95rem; }
+.vlist .who { display: flex; gap: 2px; }
+.clist { display: flex; flex-direction: column; gap: 3px; }
+.crow {
+  display: grid;
+  grid-template-columns: 1.6em minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font: 400 0.92rem/1.35 var(--font-math);
+  text-align: left;
+  cursor: pointer;
+}
+.crow:hover { border-color: var(--rule); }
+.crow .nw { white-space: nowrap; }
+.crow[aria-pressed="true"] { border-color: var(--accent-text); background: var(--accent-soft); }
+.crow:focus-visible { outline: 3px solid var(--accent-text); outline-offset: 2px; }
+.axlist { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 3px; font-size: 0.86rem; color: var(--muted); }
+.axlist .math { color: var(--ink); }
+.coords .mat { font-family: var(--font-math); color: var(--ink); }
+.mrow { display: flex; align-items: center; justify-content: center; gap: 0.6em; padding-block: 2px; font-family: var(--font-math); font-size: 1.02rem; }
+
+/* Readout */
+.readout { display: flex; flex-direction: column; gap: 10px; }
+.card { display: flex; flex-direction: column; gap: 6px; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); }
+.mv-name { margin: 0; font: 600 1.18rem/1.25 var(--font-math); text-wrap: balance; }
+.mv-class { margin: 0; font-size: 0.86rem; color: var(--muted); }
+.tag {
+  display: inline-block;
+  margin-right: 0.35em;
+  padding: 0.1em 0.5em;
+  border-radius: 999px;
+  font: 700 0.7rem/1.4 var(--font-ui);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  vertical-align: 0.08em;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.facts { margin: 0; display: grid; border-top: 1px solid var(--rule); }
+.fact { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-block: 0.3em; border-bottom: 1px solid var(--rule); }
+.fact dt { font-size: 0.84rem; color: var(--muted); white-space: nowrap; }
+.fact dd { margin: 0; font-family: var(--font-math); font-size: 1.06rem; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+.cyc { word-spacing: 0.22em; }
+.mat { display: inline-flex; align-items: center; gap: 0.3em; }
+.mat .half { font-size: 1.1em; }
+.mx {
+  display: inline-grid;
+  vertical-align: middle;
+  grid-template-columns: repeat(3, auto);
+  gap: 0 0.75em;
+  padding: 0.1em 0.5em;
+  border-left: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  border-radius: 7px;
+  font-size: 1.04rem;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.mx span { text-align: center; }
+.pill {
+  margin: 0;
+  align-self: flex-start;
+  padding: 0.28em 0.75em;
+  border-radius: 999px;
+  font: 600 0.86rem var(--font-ui);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.pill i { font-weight: 400; }
+.pill.transit { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--rule); }
+.twoline { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; transition: opacity 200ms; }
+.twoline .disc { width: 1.45em; height: 1.45em; }
+.twoline.stale { opacity: 0.35; }
+.tl-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 3px 0 2px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: 400 0.95rem/1 var(--font-math);
+  cursor: pointer;
+}
+.tl-col:hover { border-color: var(--rule); }
+.tl-col[aria-pressed="true"] { border-color: var(--accent-text); background: var(--accent-soft); }
+.disc {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 50%;
+  background: var(--dc);
+  color: var(--disc-ink);
+  font: 700 0.85rem/1 var(--font-ui);
+}
+.disc.open { background: var(--surface); color: var(--dc); box-shadow: inset 0 0 0 2.5px var(--dc); }
+.disc.sm { width: 1.2em; height: 1.2em; font-size: 0.68rem; }
+.sigma { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; font-family: var(--font-math); font-size: 1.32rem; }
+.sigma .sg { font-size: 1rem; color: var(--muted); white-space: nowrap; }
+.detail { margin: 0; display: flex; flex-direction: column; gap: 3px; font-size: 0.9rem; color: var(--muted); }
+.detail p { margin: 0; }
+.detail .math, .detail i { color: var(--ink); }
+.detail .nw { white-space: nowrap; }
+.gline { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-block: 0.25em; border-block: 1px solid var(--rule); font-family: var(--font-math); font-size: 1.06rem; transition: opacity 200ms; }
+.gline .mx { line-height: 1.2; }
+.gline .lab { font-size: 0.95rem; color: var(--muted); }
+.pillrow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; }
+.btnrow { display: flex; gap: 6px; }
+.btnrow .btn { padding: 0.4em 0.6em; font-size: 0.85rem; }
+.key { margin: 0; font-size: 0.82rem; line-height: 1.45; color: var(--muted); }
+
+/* Footer */
+.keys { display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: 0.8rem; color: var(--muted); }
+.keys kbd { opacity: 0.85; }
+
+/* Short screens (a 1280×720 projector, with or without full screen): tighten the readout so the lines about the moves stay in view. */
+@media (min-width: 1181px) and (max-height: 760px) {
+  .app { padding-block: 8px 6px; gap: 8px; }
+  .readout { gap: 8px; }
+  .card { gap: 4px; padding: 8px 12px; }
+  .fact { padding-block: 0.15em; }
+  .mx { line-height: 1.15; }
+  .gline { padding-block: 0.15em; }
+  .gline .mx { line-height: 1.1; }
+  .tl-col { padding: 1px 0; }
+  .sigma { font-size: 1.22rem; }
+  .detail { gap: 2px; }
+}
+@media (min-width: 1181px) and (max-height: 680px) {
+  .keys { display: none; }
+}
+@media (max-width: 1180px) {
+  html, body { height: auto; }
+  .app { height: auto; }
+  .layout { grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); }
+  .viewport { flex: none; height: min(72vh, 640px); }
+  .left { grid-column: 1 / -1; order: 3; }
+  .catalog, .coords { overflow: visible; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start; gap: 10px 20px; }
+  .catalog .cat-head, .catalog .sum, .coords .phi { grid-column: 1 / -1; }
+  .readout { overflow: visible; }
+}
+@media (max-width: 760px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .viewport { height: auto; aspect-ratio: 1; max-height: 78vh; }
+  .catalog, .coords { grid-template-columns: minmax(0, 1fr); }
+  .playbar { flex-wrap: wrap; }
+  .playbar input[type="range"] { flex-basis: 100%; order: 3; }
+  .live { min-width: 0; flex: 1; }
+  .keys { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .viewport canvas, .hint, .rot, .twoline { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <header class="top">
+    <div class="title">
+      <h1>Rotations of the dodecahedron</h1>
+      <p class="subtitle">The 60 even permutations of five inscribed cubes</p>
+    </div>
+    <div class="top-actions">
+      <div class="seg small" role="group" aria-label="Speed">
+        <button type="button" data-speed="slow" aria-pressed="false">Slow</button>
+        <button type="button" data-speed="normal" aria-pressed="true">Normal</button>
+        <button type="button" data-speed="fast" aria-pressed="false">Fast</button>
+      </div>
+      <button class="btn" id="btn-tour" type="button" aria-pressed="false"><span id="tour-label">Play all 60</span> <kbd>A</kbd></button>
+      <button class="btn" id="btn-full" type="button">Full screen <kbd>F</kbd></button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div class="left">
+      <div class="seg small tabs" role="group" aria-label="List">
+        <button type="button" id="tab-rot" data-tab="rot" aria-pressed="true">Rotations</button>
+        <button type="button" id="tab-coords" data-tab="coords" aria-pressed="false">Coordinates <kbd>C</kbd></button>
+      </div>
+      <nav class="catalog" id="catalog" aria-label="Rotations"></nav>
+      <section class="coords" id="coords" aria-label="Coordinates" hidden></section>
+    </div>
+
+    <section class="stage" aria-label="The dodecahedron">
+      <div class="bar">
+        <div class="shows" role="group" aria-label="Show">
+          <span class="bar-label">Show</span>
+          <button class="tog" type="button" id="show-cubes" data-show="cubes" aria-pressed="true">Cubes</button>
+          <button class="tog" type="button" id="show-dots" data-show="dots" aria-pressed="true">Dots</button>
+          <button class="tog" type="button" id="show-ico" data-show="ico" aria-pressed="false">Icosahedron</button>
+          <button class="tog" type="button" id="show-verts" data-show="verts" aria-pressed="false">Vertices</button>
+          <button class="tog" type="button" id="show-axes" data-show="axes" aria-pressed="false">Axes</button>
+        </div>
+      </div>
+      <div class="viewport" id="viewport">
+        <canvas id="cv" role="img" aria-label="A rotating dodecahedron with five inscribed cubes. Drag to turn the view."></canvas>
+        <p class="hint" id="hint">Drag to turn the view. Double-click to reset it.</p>
+      </div>
+      <div class="bar playbar">
+        <button class="btn primary" id="btn-play" type="button"><span id="play-label">Play</span> <kbd>Space</kbd></button>
+        <input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-label="How far this move has turned">
+        <output class="live" id="mv-live" for="scrub"></output>
+        <button class="btn" id="btn-view" type="button" aria-pressed="false">View along axis <kbd>V</kbd></button>
+      </div>
+    </section>
+
+    <aside class="readout" aria-label="Readout">
+      <section class="card" aria-live="polite">
+        <p class="eyebrow" id="mv-eyebrow">This move</p>
+        <h2 class="mv-name" id="mv-name"></h2>
+        <p class="mv-class" id="mv-class"></p>
+        <dl class="facts">
+          <div class="fact"><dt>Matrix</dt><dd id="mv-matrix"></dd></div>
+          <div class="fact"><dt>On the cubes</dt><dd id="mv-perm" class="cyc"></dd></div>
+        </dl>
+      </section>
+      <section class="card">
+        <p class="eyebrow">Where the cubes are now</p>
+        <div class="pillrow">
+          <p class="pill" id="pos-pill"></p>
+          <div class="btnrow">
+            <button class="btn" id="btn-undo" type="button">Undo <kbd>Z</kbd></button>
+            <button class="btn" id="btn-reset" type="button">Reset <kbd>R</kbd></button>
+          </div>
+        </div>
+        <div class="twoline" id="pos-where" role="group" aria-label="Where each cube went. Click one to show it alone."></div>
+        <p class="gline" id="pos-matrix"></p>
+        <p class="sigma" id="pos-sigma"><span><i>σ</i> = <span class="cyc" id="pos-perm">1</span></span><span class="sg">sgn <i>σ</i> = <span id="pos-sgn">+1</span></span></p>
+        <div class="detail" id="pos-detail"></div>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="keys">
+    <span><kbd>Space</kbd> play / pause</span>
+    <span><kbd>Z</kbd> undo</span>
+    <span><kbd>R</kbd> reset</span>
+    <span><kbd>A</kbd> play all</span>
+    <span><kbd>V</kbd> view along the axis</span>
+    <span><kbd>1</kbd>–<kbd>5</kbd> show one cube, <kbd>0</kbd> all</span>
+    <span><kbd>C</kbd> coordinates</span>
+    <span><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> turn the view</span>
+    <span><kbd>Shift</kbd>-click a rotation to start from the identity</span>
+    <span><kbd>Esc</kbd> stop</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const PI = Math.PI;
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- vectors and 3x3 matrices ----------
+  const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const mul = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const norm = (a) => Math.hypot(a[0], a[1], a[2]);
+  const unit = (a) => mul(a, 1 / norm(a));
+  const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+  const I3 = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  const mm = (A, B) => A.map((r) => [0, 1, 2].map((j) => r[0] * B[0][j] + r[1] * B[1][j] + r[2] * B[2][j]));
+  const mv = (A, v) => A.map((r) => dot(r, v));
+  const tr = (A) => [0, 1, 2].map((i) => [A[0][i], A[1][i], A[2][i]]);
+  // Rotation by ang about axis, counterclockwise when the axis points at the viewer (right-hand rule).
+  function rot(axis, ang) {
+    const [x, y, z] = unit(axis), c = Math.cos(ang), s = Math.sin(ang), t = 1 - c;
+    return [
+      [t * x * x + c, t * x * y - s * z, t * x * z + s * y],
+      [t * x * y + s * z, t * y * y + c, t * y * z - s * x],
+      [t * x * z - s * y, t * y * z + s * x, t * z * z + c],
+    ];
+  }
+
+  // ---------- the solids, as intersections of half-spaces n·x ≤ d ----------
+  function buildSolid(verts, planes) {
+    const faces = planes.map((pl) => {
+      const idx = verts.map((v, i) => i).filter((i) => Math.abs(dot(pl.n, verts[i]) - pl.d) < 1e-9);
+      const c = mul(idx.reduce((acc, i) => add(acc, verts[i]), [0, 0, 0]), 1 / idx.length);
+      const nu = unit(pl.n), s0 = unit(sub(verts[idx[0]], c)), t0 = cross(nu, s0);
+      const ang = (i) => { const d = sub(verts[i], c); return Math.atan2(dot(d, t0), dot(d, s0)); };
+      idx.sort((a, b) => ang(a) - ang(b));
+      return { n: pl.n, nu, d: pl.d, idx, c };
+    });
+    const edges = [], seen = new Map();
+    faces.forEach((f, fi) => {
+      f.idx.forEach((a, k) => {
+        const b = f.idx[(k + 1) % f.idx.length], key = Math.min(a, b) + "-" + Math.max(a, b);
+        if (seen.has(key)) edges[seen.get(key)].faces.push(fi);
+        else { seen.set(key, edges.length); edges.push({ a, b, faces: [fi] }); }
+      });
+    });
+    return { verts, planes, faces, edges };
+  }
+
+  // ---------- the dodecahedron and its five cubes ----------
+  const PHI = (1 + Math.sqrt(5)) / 2, IPHI = PHI - 1; // IPHI = 1/φ
+  const E = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  const AX = ["x", "y", "z"];
+  // The 20 vertices: the 8 corners of [−1, 1]³, then (0, ±1/φ, ±φ) and its cyclic shifts.
+  const VERTS = [];
+  for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) VERTS.push([x, y, z]);
+  for (const a of [-1, 1]) for (const b of [-1, 1]) VERTS.push([0, a * IPHI, b * PHI], [a * IPHI, b * PHI, 0], [b * PHI, 0, a * IPHI]);
+  // The 12 faces are n·x ≤ φ² for n = (±1, 0, ±φ) and its cyclic shifts. These n are also the vertices of the dual icosahedron.
+  const ICO = [];
+  for (const a of [-1, 1]) for (const b of [-1, 1]) ICO.push([a, 0, b * PHI], [0, a * PHI, b], [a * PHI, b, 0]);
+  const DODEC = buildSolid(VERTS, ICO.map((n) => ({ n, d: PHI + 1 })));
+  const ICO_EDGES = [];
+  for (let a = 0; a < 12; a++) for (let b = a + 1; b < 12; b++) if (Math.abs(norm(sub(ICO[a], ICO[b])) - 2) < 1e-9) ICO_EDGES.push([a, b]);
+  const vIndex = (p) => VERTS.findIndex((v) => Math.abs(v[0] - p[0]) + Math.abs(v[1] - p[1]) + Math.abs(v[2] - p[2]) < 1e-6);
+  // Cube 1 is [−1, 1]³; cube k + 1 is cube k turned by 2π/5 about the axis through (1, 0, φ).
+  const F0 = [1, 0, PHI];
+  const R5 = rot(F0, 2 * PI / 5);
+  const POW = [I3];
+  for (let k = 1; k < 5; k++) POW.push(mm(R5, POW[k - 1]));
+  const CUBES = POW.map((P) => [0, 1, 2, 3, 4, 5, 6, 7].map((i) => vIndex(mv(P, VERTS[i]))));
+  const cubeKey = (idx) => idx.slice().sort((a, b) => a - b).join(",");
+  const CUBE_KEYS = CUBES.map(cubeKey);
+  const CUBE_EDGES = CUBES.map((c) => {
+    const out = [];
+    c.forEach((a, i) => c.slice(i + 1).forEach((b) => { if (Math.abs(norm(sub(VERTS[a], VERTS[b])) - 2) < 1e-9) out.push([a, b]); }));
+    return out;
+  });
+  const CUBE_SOLIDS = POW.map((P, k) => buildSolid(CUBES[k].map((i) => VERTS[i]), [0, 1, 2].flatMap((j) => [1, -1].map((sg) => ({ n: mul(mv(P, E[j]), sg), d: 1 })))));
+  // Each edge of the dodecahedron caps one face of exactly one cube: the cube containing neither end of the edge.
+  const MIDS = DODEC.edges.map((ed) => mul(add(VERTS[ed.a], VERTS[ed.b]), 0.5));
+  const RIDGE = DODEC.edges.map((ed) => 1 + CUBES.findIndex((c) => !c.includes(ed.a) && !c.includes(ed.b)));
+
+  // ---------- permutations of {1, ..., 5} ----------
+  // s[i] = j when M sends cube i onto cube j. Arrays are 1-based; index 0 is unused.
+  function action(M) {
+    const s = [0];
+    for (let i = 1; i <= 5; i++) s[i] = 1 + CUBE_KEYS.indexOf(cubeKey(CUBES[i - 1].map((v) => vIndex(mv(M, VERTS[v])))));
+    return s;
+  }
+  function cyclesOf(s) {
+    const seen = [], out = [];
+    for (let i = 1; i <= 5; i++) {
+      if (seen[i]) continue;
+      const c = [];
+      for (let j = i; !seen[j]; j = s[j]) { seen[j] = true; c.push(j); }
+      if (c.length > 1) out.push(c);
+    }
+    return out;
+  }
+  const permText = (s) => cyclesOf(s).map((c) => "(" + c.join(" ") + ")").join("") || "1";
+  function sign(s) {
+    const seen = [];
+    let n = 0;
+    for (let i = 1; i <= 5; i++) {
+      if (seen[i]) continue;
+      n++;
+      for (let j = i; !seen[j]; j = s[j]) seen[j] = true;
+    }
+    return (5 - n) % 2 ? -1 : 1;
+  }
+  const signText = (g) => (g > 0 ? "+1" : "−1");
+
+  // ---------- the 60 rotations ----------
+  // Every entry of a rotation matrix of the dodecahedron is 0, ±1/(2φ), ±1/2, ±φ/2 or ±1. Snapping to these keeps products exact.
+  const VALS = [0, IPHI / 2, 0.5, PHI / 2, 1];
+  function snapM(A) {
+    return A.map((r) => r.map((x) => {
+      let best = 0;
+      for (const v of VALS) if (Math.abs(Math.abs(x) - v) < Math.abs(Math.abs(x) - best)) best = v;
+      if (Math.abs(Math.abs(x) - best) > 1e-6) throw new Error("not a symmetry of the dodecahedron: entry " + x);
+      return x < 0 && best ? -best : best;
+    }));
+  }
+  const mkey = (A) => A.flat().map((x) => Math.round(x * 1e5) || 0).join(",");
+  const EL = [];
+  const byKey = new Map();
+  function addEl(o) {
+    o.M = o.ang ? snapM(rot(o.axis, o.ang)) : I3;
+    o.key = mkey(o.M);
+    o.s = action(o.M);
+    o.perm = permText(o.s);
+    o.sgn = sign(o.s);
+    o.idx = EL.length;
+    EL.push(o);
+    byKey.set(o.key, o);
+    return o;
+  }
+  const firstPositive = (v) => v.find((t) => Math.abs(t) > 1e-9) > 0;
+  const ID = addEl({ cls: "id", axis: null, ang: 0 });
+  // 15 half-turns: the three face axes of each cube. Row k fixes cube k.
+  const EDGE = [1, 2, 3, 4, 5].map((k) => [0, 1, 2].map((j) => {
+    let axis = mv(POW[k - 1], E[j]);
+    if (!firstPositive(axis)) axis = mul(axis, -1);
+    return addEl({ cls: "edge", axis, ang: PI, k, j });
+  }));
+  // 20 turns about vertex axes. Two cubes share exactly one long diagonal, so the 10 axes match the 10 pairs of cubes.
+  const PAIRS = [];
+  for (let a = 1; a <= 5; a++) for (let b = a + 1; b <= 5; b++) PAIRS.push([a, b]);
+  const VTURN = PAIRS.map(([a, b]) => {
+    const v = CUBES[a - 1].filter((i) => CUBES[b - 1].includes(i)).find((i) => firstPositive(VERTS[i]));
+    return [2 * PI / 3, -2 * PI / 3].map((ang) => addEl({ cls: "vert", axis: VERTS[v], ang, pair: [a, b] }));
+  });
+  // 24 turns about face axes, through (±1, 0, ±φ) and its cyclic shifts.
+  const FAXES = [[1, 0, PHI], [1, 0, -PHI], [0, PHI, 1], [0, PHI, -1], [PHI, 1, 0], [PHI, -1, 0]];
+  const FTURN = FAXES.map((axis) => [2 * PI / 5, 4 * PI / 5, -4 * PI / 5, -2 * PI / 5].map((ang) => addEl({ cls: "face", axis, ang })));
+  const TOUR = [ID, ...EDGE.flat(), ...VTURN.flat(), ...FTURN.flat()];
+  if (byKey.size !== 60) console.error("expected 60 distinct rotations, found " + byKey.size);
+  // Exact position: products are snapped back onto the group.
+  const R5s = snapM(R5);
+  const snapG = (A) => { const el = byKey.get(mkey(A)); return el ? el.M : snapM(A); };
+
+  const SUBS = "₀₁₂₃₄₅₆₇₈₉";
+  const MINUS = "−";
+  const cSub = (i) => `<i>C</i><sub>${i}</sub>`;
+  function angText(a) {
+    const table = [[PI, "π"], [2 * PI / 3, "2π/3"], [-2 * PI / 3, MINUS + "2π/3"], [2 * PI / 5, "2π/5"], [4 * PI / 5, "4π/5"], [-4 * PI / 5, MINUS + "4π/5"], [-2 * PI / 5, MINUS + "2π/5"]];
+    for (const [v, t] of table) if (Math.abs(a - v) < 1e-9) return t;
+    return "0";
+  }
+  // A coordinate 0, ±1, ±φ, ±φ², ±1/φ as text.
+  function coord(x) {
+    for (const [v, t] of [[0, "0"], [1, "1"], [PHI, "φ"], [PHI + 1, "φ²"], [IPHI, "φ⁻¹"], [2, "2"]]) if (Math.abs(Math.abs(x) - v) < 1e-9) return (x < 0 ? MINUS : "") + t;
+    return x.toFixed(3);
+  }
+  const ptText = (p) => "(" + p.map(coord).join(", ") + ")";
+  function matHTML(M) {
+    const integral = M.every((r) => r.every((x) => Math.abs(x - Math.round(x)) < 1e-9));
+    const k = integral ? 1 : 2;
+    return `<span class="mat">${integral ? "" : '<span class="half">½</span>'}<span class="mx">${M.flat().map((x) => `<span>${coord(k * x)}</span>`).join("")}</span></span>`;
+  }
+  const plain = (html) => html.replace(/<sub>(?:<i>)?(\d)(?:<\/i>)?<\/sub>/g, (m, d) => SUBS[d]).replace(/<[^>]+>/g, "");
+
+  function nameHTML(el) {
+    switch (el.cls) {
+      case "id": return "Identity";
+      // The half-turn axes of cube 1 are the coordinate axes; the others point at (1, φ, φ²) up to order and signs.
+      case "edge": return el.k === 1 ? `Half-turn about the <i>${AX[el.j]}</i>-axis` : `Half-turn about the axis through ${ptText(mul(el.axis, 2 * PHI))}`;
+      case "vert":
+      case "face": return `Turn by ${angText(el.ang)} about the axis through ${ptText(el.axis)}`;
+    }
+    return "";
+  }
+  function aboutHTML(el) {
+    switch (el.cls) {
+      case "id": return "Every cube stays put.";
+      case "edge": return `The axis joins the midpoints of two opposite edges. It also joins the centers of two opposite faces of cube ${el.k}, so cube ${el.k} stays put. One of 15 half-turns.`;
+      case "vert": return `The axis joins two opposite vertices. It is a long diagonal of cube ${el.pair[0]} and of cube ${el.pair[1]}, so these two stay put. One of 20 such turns.`;
+      case "face": return "The axis joins the centers of two opposite faces. All five cubes move. One of 24 such turns.";
+    }
+    return "";
+  }
+
+  // ---------- state ----------
+  // base and hist describe the position before the current move; cur.histAfter, after it.
+  // cur.p is how far the move has turned (0 to 1); cur.tau is its clock (eased into p).
+  let base = I3, hist = [], cur = null;
+  const queue = [], RESET = { reset: true };
+  let touring = false, tourTok = 0, waiters = [];
+  // startTok invalidates a pending shift-click start; shownTransit records whether the panels show a move in progress (set by renderPos).
+  let startTok = 0, shownTransit = false;
+  let speed = "normal";
+  const SPEEDS = { slow: 2.1, normal: 1, fast: 0.45 };
+  let timeScale = 1;
+  const show = { cubes: true, dots: true, ico: false, verts: false, axes: false };
+  let focus = 0; // 0 shows all five cubes; k shows cube k alone
+  let tab = "rot"; // the left column shows the rotations or the coordinates
+  let hoverEl = null;
+  const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const ease = (t) => 0.5 - 0.5 * Math.cos(PI * t);
+  const easeInv = (p) => Math.acos(clamp(1 - 2 * p, -1, 1)) / PI;
+  const durationOf = (el) => (el.ang ? (760 + 640 * Math.abs(el.ang) / (PI / 2)) * SPEEDS[speed] * timeScale : 0);
+
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } },
+  };
+
+  function orientation() {
+    if (!cur || !cur.el.ang || cur.p <= 0) return base;
+    if (cur.p >= 1) return snapG(mm(cur.el.M, base));
+    return mm(rot(cur.el.axis, cur.p * cur.el.ang), base);
+  }
+  // The settled position, or null while a move is part way through.
+  function posState() {
+    if (!cur || cur.p <= 0) return { G: base, h: hist };
+    if (cur.p >= 1) return { G: snapG(mm(cur.el.M, base)), h: cur.histAfter };
+    return null;
+  }
+
+  function finalize() {
+    if (!cur) return;
+    if (cur.p > 0 && cur.p < 1) cur.p = cur.p >= 0.5 ? 1 : 0;
+    if (cur.p >= 1) { base = snapG(mm(cur.el.M, base)); hist = cur.histAfter; }
+    cur = null;
+  }
+  function startEl(el, kind) {
+    finalize();
+    kind = kind || "move";
+    cur = { kind, el, p: 0, tau: 0, dir: 1, playing: true, histAfter: kind === "reset" ? [] : hist.concat(el.idx) };
+    renderAll();
+    kick();
+  }
+  function preload(el) {
+    base = I3;
+    hist = [];
+    cur = { kind: "move", el, p: 0, tau: 0, dir: 1, playing: false, histAfter: [el.idx] };
+  }
+  function pump() {
+    if (cur && cur.playing) return;
+    if (cur && cur.p > 0 && cur.p < 1) {
+      if (queue.length) { cur.playing = true; kick(); }
+      return;
+    }
+    const next = queue.shift();
+    if (!next) return;
+    if (next === RESET) doReset();
+    else startEl(next);
+  }
+  function settle() {
+    cur.playing = false;
+    renderAll();
+    waiters.splice(0).forEach((f) => f());
+    pump();
+  }
+
+  function request(el, fromHome) {
+    stopTour();
+    cancelPending();
+    if (fromHome) {
+      queue.length = 0;
+      const tok = startTok;
+      snapHome(() => tok === startTok).then((ok) => { if (ok) startEl(el); });
+      return;
+    }
+    if (queue.length >= 4) return;
+    queue.push(el);
+    pump();
+  }
+  function playPause() {
+    if (!cur) return;
+    if (cur.playing) { cur.playing = false; renderAll(); return; }
+    if (!cur.el.ang) { cur.p = 0; cur.tau = 0; }
+    if (cur.p >= 1) { cur.p = 0; cur.tau = 0; }
+    cur.dir = 1;
+    cur.playing = true;
+    renderAll();
+    kick();
+  }
+  function undo() {
+    stopTour();
+    cancelPending();
+    queue.length = 0;
+    if (cur && cur.p > 0) {
+      cur.dir = -1;
+      cur.playing = true;
+      renderAll();
+      kick();
+      return;
+    }
+    finalize();
+    if (!hist.length) { renderAll(); return; }
+    const el = EL[hist[hist.length - 1]];
+    const histAfter = hist.slice();
+    base = snapG(mm(tr(el.M), base));
+    hist = hist.slice(0, -1);
+    cur = { kind: "move", el, p: 1, tau: 1, dir: -1, playing: true, histAfter };
+    renderAll();
+    kick();
+  }
+  function doReset() {
+    finalize();
+    startEl(byKey.get(mkey(tr(base))), "reset");
+  }
+  function reset() {
+    stopTour();
+    cancelPending();
+    queue.length = 0;
+    if (cur && (cur.playing || (cur.p > 0 && cur.p < 1))) {
+      queue.push(RESET);
+      cur.playing = true;
+      kick();
+      return;
+    }
+    doReset();
+  }
+  // Fade back to the identity. Resolves false, changing nothing, if the start was superseded during the fade.
+  function snapHome(current) {
+    return new Promise((resolve) => {
+      const done = () => {
+        if (!current()) { resolve(false); return; }
+        base = I3;
+        hist = [];
+        cur = null;
+        renderAll();
+        kick();
+        vp.classList.remove("fading");
+        resolve(true);
+      };
+      if (reduced) { done(); return; }
+      vp.classList.add("fading");
+      setTimeout(done, 180);
+    });
+  }
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function playAll() {
+    cancelPending();
+    if (touring) { stopTour(); return; }
+    touring = true;
+    const tok = ++tourTok;
+    queue.length = 0;
+    renderControls();
+    for (const el of TOUR) {
+      if (!(await snapHome(() => tok === tourTok))) return;
+      startEl(el);
+      await new Promise((r) => waiters.push(r));
+      if (tok !== tourTok) return;
+      await sleep((el.ang ? 700 : 1300) * SPEEDS[speed] * timeScale);
+      if (tok !== tourTok) return;
+    }
+    touring = false;
+    renderControls();
+  }
+  function cancelPending() {
+    startTok++;
+    vp.classList.remove("fading");
+  }
+  function stopTour() {
+    if (!touring) return;
+    touring = false;
+    tourTok++;
+    vp.classList.remove("fading");
+    waiters.splice(0).forEach((f) => f());
+    renderControls();
+  }
+  function setTab(t) {
+    tab = t === "coords" ? "coords" : "rot";
+    store.set("dodeca.tab", tab);
+    renderControls();
+  }
+  function setFocus(k) {
+    focus = !k || focus === k ? 0 : k;
+    if (focus && !show.cubes) show.cubes = true;
+    renderPos();
+    renderControls();
+    kick();
+  }
+
+  // ---------- camera ----------
+  const DIST = 14, RS = 2.3;
+  const DEFAULT_VIEW = { az: 0.62, el: 0.4 };
+  const view = { az: DEFAULT_VIEW.az, el: DEFAULT_VIEW.el };
+  let viewSaved = null, camAnim = null, cam = null;
+  function camFrame() {
+    const ce = Math.cos(view.el);
+    const c = [ce * Math.cos(view.az), ce * Math.sin(view.az), Math.sin(view.el)];
+    const f = mul(c, -1), r = unit(cross(f, [0, 0, 1])), u = cross(r, f);
+    return { c, f, r, u, pos: mul(c, DIST) };
+  }
+  function animateView(to) {
+    let daz = to.az - view.az;
+    daz = (((daz + PI) % (2 * PI)) + 2 * PI) % (2 * PI) - PI;
+    if (reduced) { view.az += daz; view.el = to.el; kick(); return; }
+    camAnim = { az0: view.az, el0: view.el, daz, del: to.el - view.el, t0: performance.now(), dur: 650 };
+    kick();
+  }
+  function viewAlongAxis() {
+    if (viewSaved) {
+      animateView(viewSaved);
+      viewSaved = null;
+    } else {
+      const el = cur && cur.el;
+      if (!el || !el.axis) return;
+      const a = unit(el.axis);
+      viewSaved = { az: view.az, el: view.el };
+      animateView({ az: Math.abs(a[2]) > 0.999 ? view.az : Math.atan2(a[1], a[0]), el: clamp(Math.asin(a[2]), -1.5, 1.5) });
+    }
+    renderControls();
+  }
+
+  // ---------- drawing ----------
+  const vp = $("viewport"), cv = $("cv"), ctx = cv.getContext("2d");
+  let W = 0, H = 0, DPR = 1, F = 1, CX = 0, CY = 0;
+  const UIFONT = getComputedStyle(document.documentElement).getPropertyValue("--font-ui").trim();
+  const MATHFONT = getComputedStyle(document.documentElement).getPropertyValue("--font-math").trim();
+  let THEME = null;
+  function hexRgb(h) {
+    h = h.replace("#", "");
+    if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+    const n = parseInt(h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function theme() {
+    if (THEME) return THEME;
+    const cs = getComputedStyle(document.documentElement);
+    const g = (n) => cs.getPropertyValue(n).trim();
+    const d = [null, g("--d1"), g("--d2"), g("--d3"), g("--d4"), g("--d5")];
+    THEME = {
+      ink: g("--ink"), muted: g("--muted"), stage: g("--stage"),
+      d, dRgb: d.map((c) => (c ? hexRgb(c) : null)), discInk: g("--disc-ink"),
+      face: hexRgb(g("--face")), faceA: parseFloat(g("--face-alpha")) || 0.3,
+      ico: g("--ico"), axis: g("--axis"), coord: g("--coord"), ghost: g("--ghost"),
+    };
+    return THEME;
+  }
+  const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+  function shadeFill(c, k, a) { return rgba(c.map((x) => Math.round(clamp(x * k, 0, 255))), a); }
+
+  function resize() {
+    // The canvas fills the viewport inside its border, so size the bitmap from the canvas itself.
+    const r = cv.getBoundingClientRect();
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = r.width;
+    H = r.height;
+    cv.width = Math.max(1, Math.round(W * DPR));
+    cv.height = Math.max(1, Math.round(H * DPR));
+    F = 0.47 * Math.min(W, H) * Math.sqrt(DIST * DIST - RS * RS) / RS;
+    CX = W / 2;
+    CY = H / 2;
+    kick();
+  }
+  const dotRadius = () => clamp(F / DIST * 0.1, 8, 13);
+  function proj(P) {
+    const v = sub(P, cam.pos), z = dot(v, cam.f);
+    return [CX + F * dot(v, cam.r) / z, CY - F * dot(v, cam.u) / z, z];
+  }
+  // Is P behind (or inside) the solid as seen from the camera? Clip the sight line against each face plane.
+  function occluded(P, Ot, S) {
+    const A = mv(Ot, cam.pos), B = mv(Ot, sub(P, cam.pos));
+    let tE = -Infinity, tL = Infinity;
+    for (const pl of S.planes) {
+      const nm = pl.d - dot(pl.n, A), den = dot(pl.n, B);
+      if (Math.abs(den) < 1e-12) { if (nm < 0) return false; continue; }
+      const t = nm / den;
+      if (den < 0) tE = Math.max(tE, t); else tL = Math.min(tL, t);
+      if (tE > tL) return false;
+    }
+    return tE < 1 - 1e-4 && tL > 0;
+  }
+  // Split a polyline into short pieces, each marked hidden or visible.
+  function classify(item, occ) {
+    const runs = [];
+    let run = null;
+    const pts = item.pts;
+    for (let k = 0; k + 1 < pts.length; k++) {
+      const A = pts[k], B = pts[k + 1], n = Math.max(1, Math.ceil(norm(sub(B, A)) / 0.05));
+      for (let m = 0; m < n; m++) {
+        const a = lerp(A, B, m / n), b = lerp(A, B, (m + 1) / n);
+        const hid = occ(lerp(a, b, 0.5));
+        if (!run || run.hidden !== hid) { run = { hidden: hid, pts: [proj(a)] }; runs.push(run); }
+        run.pts.push(proj(b));
+      }
+    }
+    return runs;
+  }
+  function strokeRuns(item, runs, hidden) {
+    const a = hidden ? item.hidA : item.visA;
+    if (!a) return;
+    ctx.beginPath();
+    let any = false;
+    for (const r of runs) {
+      if (r.hidden !== hidden) continue;
+      any = true;
+      ctx.moveTo(r.pts[0][0], r.pts[0][1]);
+      for (let k = 1; k < r.pts.length; k++) ctx.lineTo(r.pts[k][0], r.pts[k][1]);
+    }
+    if (!any) return;
+    ctx.globalAlpha = a;
+    ctx.strokeStyle = item.color;
+    ctx.lineWidth = item.w;
+    ctx.setLineDash((hidden && item.hidDash) || item.dash || []);
+    ctx.lineCap = "round";
+    ctx.stroke();
+    ctx.lineCap = "butt";
+    if (item.arrow) {
+      const last = runs[runs.length - 1];
+      if (last.hidden === hidden && last.pts.length > 1) {
+        const p = last.pts[last.pts.length - 1];
+        let q = last.pts[0];
+        for (let k = last.pts.length - 2; k >= 0; k--) { q = last.pts[k]; if (Math.hypot(p[0] - q[0], p[1] - q[1]) > 6) break; }
+        arrowHead(p, q, item.w * 2.2 + 5, item.color);
+      }
+    }
+  }
+  function arrowHead(p, q, size, color) {
+    const ang = Math.atan2(p[1] - q[1], p[0] - q[0]);
+    ctx.setLineDash([]);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(p[0] + Math.cos(ang) * size * 0.35, p[1] + Math.sin(ang) * size * 0.35);
+    ctx.lineTo(p[0] - Math.cos(ang - 0.42) * size, p[1] - Math.sin(ang - 0.42) * size);
+    ctx.lineTo(p[0] - Math.cos(ang + 0.42) * size, p[1] - Math.sin(ang + 0.42) * size);
+    ctx.closePath();
+    ctx.fill();
+  }
+  function fillPoly(P2, idx, style) {
+    ctx.beginPath();
+    idx.forEach((i, k) => (k ? ctx.lineTo(P2[i][0], P2[i][1]) : ctx.moveTo(P2[i][0], P2[i][1])));
+    ctx.closePath();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = style;
+    ctx.fill();
+  }
+  // A dot rides on the solid; it carries the number of the cube whose face its edge caps.
+  function disc(p, r, i, alpha, T) {
+    ctx.globalAlpha = alpha;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], r, 0, 2 * PI);
+    ctx.fillStyle = T.d[i];
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = T.stage;
+    ctx.stroke();
+    ctx.fillStyle = T.discInk;
+    ctx.font = `700 ${Math.round(r * 1.12)}px ${UIFONT}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(i), p[0], p[1] + r * 0.06);
+  }
+  // A ring stays fixed in space, where the dots started.
+  function ring(p, r, j, alpha, T) {
+    ctx.globalAlpha = alpha;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], r + 4.5, 0, 2 * PI);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = T.d[j];
+    ctx.stroke();
+  }
+
+  function draw() {
+    if (!W || !H) return;
+    const T = theme();
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    cam = camFrame();
+    const S = DODEC;
+    const O = orientation(), Ot = tr(O);
+    const occ = (P) => occluded(P, Ot, S);
+    const Wv = S.verts.map((v) => mv(O, v)), Pv = Wv.map(proj);
+    const front = S.faces.map((f) => dot(mv(O, f.n), sub(cam.pos, mv(O, f.c))) > 0);
+    const light = unit(add(add(mul(cam.r, -0.45), mul(cam.u, 0.8)), mul(cam.c, 0.6)));
+    const items = [];
+    const line = (pts, o) => items.push(Object.assign({ pts }, o));
+    if (show.axes) {
+      for (let k = 0; k < 3; k++) line([mul(E[k], -2.3), mul(E[k], 2.3)], { color: T.coord, w: 1.2, hidA: 0.4, visA: 0.95, arrow: true });
+    }
+    // Where the solid started: a fixed dashed outline.
+    for (const ed of S.edges) line([S.verts[ed.a], S.verts[ed.b]], { color: T.ghost, w: 1.25, dash: [4, 4], hidA: 0.4, visA: 0.85, ghost: true });
+    if (show.ico) {
+      for (const [a, b] of ICO_EDGES) line([mv(O, ICO[a]), mv(O, ICO[b])], { color: T.ico, w: 1.7, hidA: 0.28, visA: 0.9 });
+    }
+    // The cubes' edges are diagonals of the pentagons: each face carries one edge of each cube.
+    if (show.cubes) {
+      for (let k = 1; k <= 5; k++) {
+        const on = !focus || focus === k, solo = focus === k;
+        for (const [a, b] of CUBE_EDGES[k - 1]) {
+          line([Wv[a], Wv[b]], { color: T.d[k], w: solo ? 3.2 : on ? 2.3 : 1.2, hidA: solo ? 0.75 : on ? 0.18 : 0.04, visA: on ? 1 : 0.2, hidDash: solo ? [6, 5] : null });
+        }
+      }
+    }
+    // The axis of the current move, with an arc showing the angle turned so far.
+    const exitDist = (u) => { let best = Infinity; for (const pl of S.planes) { const k = dot(pl.n, u); if (k > 1e-9) best = Math.min(best, pl.d / k); } return best; };
+    const ax = cur && cur.el.axis ? cur.el : null;
+    if (ax) {
+      const a = unit(ax.axis), dp = exitDist(a), dn = exitDist(mul(a, -1));
+      line([mul(a, -(dn + 0.6)), mul(a, dp + 0.85)], { color: T.axis, w: 2.4, hidA: 0.55, visA: 1, arrow: true });
+      const c0 = mul(a, dp + 0.4), rr = 0.46;
+      const e1 = unit(cross(a, Math.abs(a[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0])), e2 = cross(a, e1);
+      const arcPts = (t0, t1) => {
+        const n = Math.max(2, Math.ceil(Math.abs(t1 - t0) / 0.08));
+        const pts = [];
+        for (let k = 0; k <= n; k++) { const t = t0 + (t1 - t0) * k / n; pts.push(add(c0, add(mul(e1, rr * Math.cos(t)), mul(e2, rr * Math.sin(t))))); }
+        return pts;
+      };
+      line(arcPts(0, ax.ang), { color: T.axis, w: 1.3, dash: [2, 4], hidA: 0.25, visA: 0.5 });
+      const sw = cur.p * ax.ang;
+      if (Math.abs(sw) > 0.02) line(arcPts(0, sw), { color: T.axis, w: 2.4, hidA: 0.5, visA: 1, arrow: Math.abs(sw) > 0.2 });
+    }
+    if (hoverEl && hoverEl.axis && (!ax || hoverEl !== ax)) {
+      const a = unit(hoverEl.axis), dp = exitDist(a), dn = exitDist(mul(a, -1));
+      line([mul(a, -(dn + 0.5)), mul(a, dp + 0.65)], { color: T.axis, w: 1.6, dash: [6, 5], hidA: 0.3, visA: 0.55 });
+    }
+
+    const runs = items.map((it) => classify(it, occ));
+    const r = dotRadius();
+
+    // 1. faces facing away, and their edges
+    S.faces.forEach((f, fi) => { if (!front[fi]) fillPoly(Pv, f.idx, shadeFill(T.face, 0.9, T.faceA * 0.35)); });
+    ctx.globalAlpha = 0.6;
+    ctx.strokeStyle = T.muted;
+    ctx.lineWidth = 1.1;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    for (const ed of S.edges) {
+      if (ed.faces.some((fi) => front[fi])) continue;
+      ctx.moveTo(Pv[ed.a][0], Pv[ed.a][1]);
+      ctx.lineTo(Pv[ed.b][0], Pv[ed.b][1]);
+    }
+    ctx.stroke();
+
+    // 2. everything behind or inside the solid
+    if (show.cubes && focus) {
+      const C = CUBE_SOLIDS[focus - 1], Cp = C.verts.map((v) => proj(mv(O, v)));
+      const cf = C.faces.map((f) => dot(mv(O, f.n), sub(cam.pos, mv(O, f.c))) > 0);
+      C.faces.forEach((f, fi) => { if (!cf[fi]) fillPoly(Cp, f.idx, rgba(T.dRgb[focus], 0.08)); });
+      C.faces.forEach((f, fi) => { if (cf[fi]) fillPoly(Cp, f.idx, rgba(T.dRgb[focus], 0.15)); });
+    }
+    items.forEach((it, k) => strokeRuns(it, runs[k], true));
+    const discs = [], rings = [];
+    if (show.dots) {
+      S.edges.forEach((ed, e) => {
+        discs.push({ p: proj(mv(O, MIDS[e])), i: RIDGE[e], hidden: !ed.faces.some((fi) => front[fi]) });
+        rings.push({ p: proj(MIDS[e]), j: RIDGE[e], hidden: occ(mul(MIDS[e], 1.002)) });
+      });
+    }
+    const dimmed = (i) => focus && show.cubes && focus !== i;
+    rings.filter((q) => q.hidden).forEach((q) => ring(q.p, r * 0.9, q.j, 0.25, T));
+    discs.filter((d) => d.hidden).forEach((d) => disc(d.p, r * 0.9, d.i, dimmed(d.i) ? 0.12 : 0.35, T));
+
+    // 3. faces toward the viewer
+    S.faces.forEach((f, fi) => {
+      if (!front[fi]) return;
+      const lam = Math.max(0, dot(unit(mv(O, f.n)), light));
+      fillPoly(Pv, f.idx, shadeFill(T.face, 0.86 + 0.3 * lam, T.faceA));
+    });
+    // 4. the starting outline, then the solid's front edges over it
+    items.forEach((it, k) => { if (it.ghost) strokeRuns(it, runs[k], false); });
+    ctx.globalAlpha = 1;
+    ctx.setLineDash([]);
+    ctx.strokeStyle = T.ink;
+    ctx.lineWidth = 1.8;
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    for (const ed of S.edges) {
+      if (!ed.faces.some((fi) => front[fi])) continue;
+      ctx.moveTo(Pv[ed.a][0], Pv[ed.a][1]);
+      ctx.lineTo(Pv[ed.b][0], Pv[ed.b][1]);
+    }
+    ctx.stroke();
+    // 5. everything in front
+    items.forEach((it, k) => { if (!it.ghost) strokeRuns(it, runs[k], false); });
+    // What was labeled on this frame, for the tests.
+    labelsDrawn = { axes: [], verts: [] };
+    if (show.axes) {
+      ctx.fillStyle = T.muted;
+      ctx.font = `italic 400 18px ${MATHFONT}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (let k = 0; k < 3; k++) {
+        // Just past the arrow tip, or beside the tip when that would fall off the canvas.
+        let p = proj(mul(E[k], 2.55));
+        if (p[0] < 10 || p[0] > W - 10 || p[1] < 12 || p[1] > H - 12) {
+          const t = proj(mul(E[k], 2.3)), o = proj([0, 0, 0]);
+          const d = Math.hypot(t[0] - o[0], t[1] - o[1]) || 1, ux = (t[0] - o[0]) / d, uy = (t[1] - o[1]) / d;
+          p = [clamp(t[0] - uy * 14, 10, W - 10), clamp(t[1] + ux * 14, 12, H - 12)];
+        }
+        ctx.globalAlpha = occ(mul(E[k], 2.55)) ? 0.4 : 1;
+        ctx.fillText(AX[k], p[0], p[1]);
+        labelsDrawn.axes.push([p[0], p[1]]);
+      }
+    }
+    if (show.verts) {
+      // Coordinates of the vertices, fixed in space. With one cube shown alone, only the corners it occupies.
+      let which = VERTS.map((v, i) => i);
+      if (focus && show.cubes) which = CUBES[action(posState() ? posState().G : base)[focus] - 1];
+      const P0 = proj([0, 0, 0]);
+      ctx.font = `400 14px ${MATHFONT}`;
+      ctx.textBaseline = "middle";
+      ctx.lineJoin = "round";
+      // Nearest vertices first. A label tries a few spots next to its vertex and takes the first that stays on the canvas,
+      // off the dots and off the labels already placed; if none is free, it is left out. The dots to avoid are the
+      // edge midpoints on faces toward the viewer, in the starting position: where the dots sit whenever the solid is at
+      // rest, so the labels hold still while it turns.
+      const frontFixed = S.faces.map((f) => dot(f.n, sub(cam.pos, f.c)) > 0);
+      const placed = !show.dots ? [] : S.edges.flatMap((ed, e) => {
+        if (!ed.faces.some((fi) => frontFixed[fi])) return [];
+        const q = proj(MIDS[e]);
+        return [[q[0] - r, q[1] - r, q[0] + r, q[1] + r]];
+      });
+      const SPOTS = [[1, 0], [1, 13], [1, -13], [1.9, 0], [1.9, 16], [1.9, -16]];
+      const order = which.filter((i) => !occ(mul(VERTS[i], 1.002))).map((i) => ({ i, pc: proj(VERTS[i]) })).sort((a, b) => a.pc[2] - b.pc[2]);
+      // Keep clear of the vertex points too.
+      order.forEach(({ pc }) => placed.push([pc[0] - 4, pc[1] - 4, pc[0] + 4, pc[1] + 4]));
+      for (const { i, pc } of order) {
+        let dx = pc[0] - P0[0], dy = pc[1] - P0[1];
+        const d = Math.hypot(dx, dy) || 1;
+        dx /= d; dy /= d;
+        const align = dx > 0.35 ? "left" : dx < -0.35 ? "right" : "center";
+        const txt = ptText(VERTS[i]), w = ctx.measureText(txt).width;
+        let x = 0, y = 0, box = null;
+        for (const [m, t] of SPOTS) {
+          // m steps outward from the center of the picture, then t px sideways.
+          x = pc[0] + dx * 9 * m - dy * t;
+          y = pc[1] + dy * 11 * m + dx * t;
+          const x0 = align === "left" ? x : align === "right" ? x - w : x - w / 2;
+          const b = [x0 - 3, y - 10, x0 + w + 3, y + 10];
+          if (b[0] < 0 || b[1] < 0 || b[2] > W || b[3] > H) continue;
+          if (placed.some((q) => b[0] < q[2] && q[0] < b[2] && b[1] < q[3] && q[1] < b[3])) continue;
+          box = b;
+          break;
+        }
+        if (!box) continue;
+        placed.push(box);
+        labelsDrawn.verts.push(box);
+        ctx.textAlign = align;
+        ctx.globalAlpha = 1;
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = T.stage;
+        ctx.strokeText(txt, x, y);
+        ctx.fillStyle = T.ink;
+        ctx.fillText(txt, x, y);
+        ctx.beginPath();
+        ctx.arc(pc[0], pc[1], 2.6, 0, 2 * PI);
+        ctx.fill();
+      }
+    }
+    rings.filter((q) => !q.hidden).forEach((q) => ring(q.p, r, q.j, 0.95, T));
+    discs.filter((d) => !d.hidden).sort((a, b) => b.p[2] - a.p[2]).forEach((d) => disc(d.p, r, d.i, dimmed(d.i) ? 0.25 : 1, T));
+    ctx.globalAlpha = 1;
+  }
+
+  let labelsDrawn = { axes: [], verts: [] };
+
+  // ---------- animation loop ----------
+  let raf = 0, lastTs = 0;
+  function kick() {
+    if (!raf) { lastTs = performance.now(); raf = requestAnimationFrame(frame); }
+  }
+  function frame(ts) {
+    raf = 0;
+    const dt = clamp(ts - lastTs, 0, 80);
+    lastTs = ts;
+    let more = false;
+    if (cur && cur.playing) {
+      const dur = durationOf(cur.el);
+      cur.tau = dur > 0 ? cur.tau + cur.dir * dt / dur : (cur.dir > 0 ? 1 : 0);
+      if (cur.dir > 0 && cur.tau >= 1) { cur.tau = 1; cur.p = 1; settle(); }
+      else if (cur.dir < 0 && cur.tau <= 0) { cur.tau = 0; cur.p = 0; settle(); }
+      else {
+        cur.p = ease(clamp(cur.tau, 0, 1));
+        // On entering the middle of a move, show it as in progress; after that only the angle changes.
+        if (!shownTransit) renderAll(); else updateLive();
+      }
+      if (cur && cur.playing) more = true;
+    }
+    if (camAnim) {
+      const t = clamp((ts - camAnim.t0) / camAnim.dur, 0, 1), k = ease(t);
+      view.az = camAnim.az0 + camAnim.daz * k;
+      view.el = camAnim.el0 + camAnim.del * k;
+      if (t >= 1) camAnim = null; else more = true;
+    }
+    draw();
+    if (more && !raf) raf = requestAnimationFrame(frame);
+  }
+
+  // ---------- panels ----------
+  function chip(el) {
+    return `<button class="rot cyc" type="button" data-i="${el.idx}" title="${plain(nameHTML(el))}, θ = ${angText(el.ang)}">${el.perm}</button>`;
+  }
+  const mini = (k) => `<span class="disc sm" style="--dc: var(--d${k})">${k}</span>`;
+  const grp = (label, body) => `<div class="grp"><p class="grp-label">${label}</p>${body}</div>`;
+  const block = (cls, title, count, note, body) =>
+    `<section class="block ${cls}"><div class="block-head"><h3>${title}</h3><span class="count">${count}</span></div><p class="block-note">${note}</p>${body}</section>`;
+  function buildCatalog() {
+    const identity = `<div class="grp inline"><p class="grp-label">Identity</p><div class="chips one">${chip(ID)}</div></div>`;
+    let edges = `<div class="tbl" style="--cols:3">`;
+    EDGE.forEach((row, k) => { edges += `<span class="rowh" title="Cube ${k + 1} stays put">${mini(k + 1)}</span>` + row.map(chip).join(""); });
+    edges += "</div>";
+    const colh = (cs) => cs.map((c) => `<span class="colh">${c}</span>`).join("");
+    const A3 = ["2π/3", MINUS + "2π/3"];
+    let verts = `<div class="tbl pairs"><span></span>${colh(A3)}<span></span>${colh(A3)}`;
+    for (let r = 0; r < 5; r++) {
+      for (const p of [r, r + 5]) {
+        const [a, b] = PAIRS[p];
+        verts += `<span class="rowh" title="Cubes ${a} and ${b} stay put">${mini(a)}${mini(b)}</span>` + VTURN[p].map(chip).join("");
+      }
+    }
+    verts += "</div>";
+    const faces = `<div class="tbl five">${colh(["2π/5", "4π/5", MINUS + "4π/5", MINUS + "2π/5"])}${FTURN.map((row) => row.map(chip).join("")).join("")}</div>`;
+    let h = `<div class="cat-head"><h2 class="eyebrow">The 60 rotations</h2>
+      <p class="legend"><span><span class="sw pos"></span>now</span><span><span class="sw move"></span>this move</span></p></div>`;
+    h += block("even", "Even permutations", "60", "Every even permutation of the five cubes comes from exactly one rotation. The colored dots by a row mark the cubes that stay put.",
+      identity +
+      grp("Half-turns about edge axes <span>(one cube stays put)</span>", edges) +
+      grp("Turns about vertex axes <span>(two cubes stay put)</span>", verts) +
+      grp("Turns about face axes <span>(5-cycles)</span>", faces));
+    h += block("muted", "Odd permutations", "60",
+      "No rotation does these: the 10 transpositions, the 30 4-cycles, and the 20 products (<i>a b c</i>)(<i>d e</i>). Reflections don’t help either. The map −<i>I</i> is a symmetry that sends each cube to itself, so all 120 symmetries of the dodecahedron still give only <i>A</i><sub>5</sub>.", "");
+    h += `<p class="sum">1 + 15 + 20 + 24 = 60 = |<i>A</i><sub>5</sub>|</p>`;
+    $("catalog").innerHTML = h;
+  }
+
+  // Representatives of the pairs ±v, in the order: corner of [−1, 1]³, then (0, ·, ·), (·, ·, 0), (·, 0, ·).
+  const family = (v) => (v.every((t) => Math.abs(Math.abs(t) - 1) < 1e-9) ? 0 : Math.abs(v[0]) < 1e-9 ? 1 : Math.abs(v[2]) < 1e-9 ? 2 : 3);
+  const vOrder = (a, b) => family(VERTS[a]) - family(VERTS[b]) || VERTS[b][0] - VERTS[a][0] || VERTS[b][1] - VERTS[a][1] || VERTS[b][2] - VERTS[a][2];
+  const cubesAt = (i) => [1, 2, 3, 4, 5].filter((k) => CUBES[k - 1].includes(i));
+  function buildCoords() {
+    const m = (t) => `<span class="math">${t}</span>`;
+    const verts = VERTS.map((v, i) => i).sort(vOrder);
+    const vlist = verts.map((i) => `<span class="vc">${ptText(VERTS[i])}</span><span class="who" title="On cubes ${cubesAt(i).join(" and ")}">${cubesAt(i).map(mini).join("")}</span>`).join("");
+    const clist = CUBES.map((c, k) => {
+      const reps = c.filter((i) => firstPositive(VERTS[i])).sort(vOrder);
+      return `<button class="crow" type="button" data-cube="${k + 1}" aria-pressed="${focus === k + 1}" title="Show cube ${k + 1} alone"><span class="disc" style="--dc: var(--d${k + 1})">${k + 1}</span><span class="cv">${reps.map((i) => `<span class="nw">±${ptText(VERTS[i])}</span>`).join(", ")}</span></button>`;
+    }).join("");
+    let h = `<p class="block-note phi">Here ${m("φ = (1 + √5)/2 ≈ 1.618")}, so ${m("φ⁻¹ = φ − 1 ≈ 0.618")} and ${m("φ² = φ + 1 ≈ 2.618")}.</p>`;
+    h += `<section class="block"><h3>The 20 vertices</h3><p>The dots after each vertex are the two cubes it belongs to. Turn on <b>Vertices</b> to label them on the solid.</p><div class="vlist" id="vlist">${vlist}</div></section>`;
+    h += `<section class="block"><h3>The five cubes</h3><p>Cube 1 is ${m("[−1, 1]<sup>3</sup>")}. Cube <i>k</i> + 1 is ${m("<i>R</i>")}(cube <i>k</i>), where ${m("<i>R</i>")} is the turn by ${m("2π/5")} about the axis through ${m("(1, 0, φ)")}, counterclockwise as seen from ${m("(1, 0, φ)")}:</p>`
+      + `<div class="mrow" id="rmat"><i>R</i> = ${matHTML(R5s)}</div>`
+      + `<p>Each cube is centered at the origin, so its 8 vertices come in pairs ${m("±<i>v</i>")}. Click a cube to show it alone.</p><div class="clist" id="clist">${clist}</div></section>`;
+    h += `<section class="block"><h3>The axes</h3><ul class="axlist">`
+      + `<li>6 face axes, through ${m("(±1, 0, ±φ), (0, ±φ, ±1), (±φ, ±1, 0)")}. These 12 points are the vertices of the dual icosahedron.</li>`
+      + `<li>10 vertex axes, through the 20 vertices. Each one is a long diagonal of two cubes.</li>`
+      + `<li>15 edge axes, through the 30 edge midpoints ${m("(±φ, 0, 0), (0, ±φ, 0), (0, 0, ±φ)")} and ${m("(±1/2, ±φ/2, ±φ²/2)")} with its cyclic shifts. Each one joins the centers of two opposite faces of one cube.</li></ul></section>`;
+    h += `<section class="block"><h3>The rotation matrices</h3><p>Every entry of every rotation matrix is ${m("0, ±1, ±1/2, ±φ/2")} or ${m("±φ⁻¹/2")}. The readout shows the matrix of each move, and of the position ${m("<i>g</i>")} it reaches.</p></section>`;
+    h += `<section class="block"><h3>How to read the picture</h3><p>Each pentagon carries one edge of each cube. Each edge of the dodecahedron sits over a face of exactly one cube (the one containing neither of its ends), and its dot has that cube’s color. The rings stay where the dots started. The dashed outline marks where the solid started. A turn by a positive angle about the axis through <i>P</i> is counterclockwise as seen from <i>P</i>. Moves compose right to left.</p></section>`;
+    $("coords").innerHTML = h;
+  }
+
+  function renderMove() {
+    const el = cur && cur.el;
+    if (!el) {
+      $("mv-eyebrow").textContent = "This move";
+      $("mv-name").textContent = "Pick a rotation";
+      $("mv-class").innerHTML = "Click any rotation in the list to apply it.";
+      $("mv-matrix").innerHTML = $("mv-perm").innerHTML = "–";
+      return;
+    }
+    let eb = "This move";
+    const rs = cur.kind === "reset";
+    if (cur.dir < 0) eb = cur.p <= 0 ? (rs ? "Reset undone. Play repeats it" : "Undone. Play repeats it") : (rs ? "Undoing the reset" : "Undoing this move");
+    else if (rs) eb = "Back to the start";
+    $("mv-eyebrow").textContent = eb;
+    $("mv-name").innerHTML = nameHTML(el);
+    $("mv-class").innerHTML = (el.cls === "id" ? "" : '<span class="tag">even</span>') + aboutHTML(el);
+    $("mv-matrix").innerHTML = matHTML(el.M);
+    $("mv-perm").innerHTML = el.perm;
+  }
+  function renderPos() {
+    const st = posState();
+    shownTransit = !st;
+    const pill = $("pos-pill"), where = $("pos-where");
+    if (!st) {
+      pill.className = "pill transit";
+      pill.innerHTML = "Move in progress";
+      where.classList.add("stale");
+      $("pos-matrix").style.opacity = "0.35";
+      $("pos-sigma").style.opacity = "0.35";
+      $("pos-detail").style.opacity = "0.35";
+      return;
+    }
+    where.classList.remove("stale");
+    $("pos-matrix").style.opacity = "";
+    $("pos-sigma").style.opacity = "";
+    $("pos-detail").style.opacity = "";
+    const { G, h } = st;
+    const s = action(G), sg = sign(s), gEl = byKey.get(mkey(G));
+    pill.className = "pill";
+    pill.innerHTML = "Even: <i>σ</i> ∈ <i>A</i><sub>5</sub>";
+    where.innerHTML = [1, 2, 3, 4, 5].map((i) =>
+      `<button class="tl-col" type="button" data-cube="${i}" aria-pressed="${focus === i}" aria-label="g(C${i}) = C${s[i]}. Show cube ${i} alone." title="g(C${SUBS[i]}) = C${SUBS[s[i]]}. Click to show cube ${i} alone."><span class="disc" style="--dc: var(--d${i})">${i}</span><span aria-hidden="true">↓</span><span class="disc open" style="--dc: var(--d${s[i]})">${s[i]}</span></button>`).join("");
+    $("pos-matrix").innerHTML = `<span class="lab"><i>g</i> =</span>${matHTML(G)}`;
+    $("pos-perm").textContent = permText(s);
+    $("pos-sgn").textContent = signText(sg);
+    const lines = [];
+    lines.push(`<p><i>σ</i>(<i>i</i>) = <i>j</i> when <i>g</i>(<i>C<sub>i</sub></i>) = <i>C<sub>j</sub></i>. On the solid, the dots of cube <i>i</i> sit in the rings of color <i>j</i>.</p>`);
+    if (h.length >= 2) {
+      // Each factor stays on one line; a long product breaks after a "·".
+      const factors = h.slice().reverse().map((i) => `<span class="nw">${EL[i].perm}</span>`);
+      if (factors.length <= 5) lines.push(`<p>Composing your ${h.length} moves, right to left: <i>σ</i>&nbsp;=&nbsp;<span class="math cyc">${factors.join("&nbsp;· ")}</span>.</p>`);
+      else lines.push(`<p><i>σ</i> is the product of your ${h.length} moves.</p>`);
+      lines.push(`<p>So <i>g</i> is one rotation: ${nameHTML(gEl)}.</p>`);
+    } else if (!h.length) {
+      lines.push("<p>At the start, <i>g</i> is the identity.</p>");
+    }
+    $("pos-detail").innerHTML = lines.join("");
+  }
+  function renderCatalogState() {
+    const st = posState();
+    const posKey = st ? mkey(st.G) : null;
+    const moveIdx = cur ? cur.el.idx : -1;
+    document.querySelectorAll(".rot[data-i]").forEach((b) => {
+      const el = EL[+b.dataset.i];
+      b.classList.toggle("is-pos", el.key === posKey);
+      b.classList.toggle("is-move", el.idx === moveIdx);
+    });
+  }
+  function updateLive() {
+    const el = cur && cur.el;
+    const deg = el ? Math.round(el.ang * 180 / PI) : 0;
+    const p = cur ? cur.p : 0;
+    const fmt = (d) => (d < 0 ? MINUS + -d : String(d)) + "°";
+    $("mv-live").textContent = el && el.ang ? `${fmt(Math.round(p * deg))} of ${fmt(deg)}` : "";
+    const sc = $("scrub");
+    sc.value = String(Math.round(p * 1000));
+    sc.disabled = !el || !el.ang;
+    $("play-label").textContent = cur && cur.playing ? "Pause" : cur && cur.el.ang && cur.p >= 1 ? "Replay" : "Play";
+  }
+  function renderControls() {
+    $("tour-label").textContent = touring ? "Stop" : "Play all 60";
+    $("btn-tour").setAttribute("aria-pressed", String(touring));
+    document.querySelectorAll(".tog").forEach((b) => b.setAttribute("aria-pressed", String(!!show[b.dataset.show])));
+    document.querySelectorAll("[data-speed]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.speed === speed)));
+    document.querySelectorAll(".tl-col, .crow").forEach((b) => b.setAttribute("aria-pressed", String(focus === +b.dataset.cube)));
+    document.querySelectorAll("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tab === tab)));
+    $("catalog").hidden = tab !== "rot";
+    $("coords").hidden = tab !== "coords";
+    const st = posState();
+    $("btn-undo").disabled = !(cur && cur.p > 0) && !hist.length;
+    $("btn-reset").disabled = !!st && mkey(st.G) === mkey(I3) && !(cur && cur.playing);
+    $("btn-play").disabled = !cur || !cur.el.ang;
+    $("btn-view").disabled = !(cur && cur.el.axis) && !viewSaved;
+    $("btn-view").setAttribute("aria-pressed", String(!!viewSaved));
+  }
+  function renderAll() {
+    renderMove();
+    renderPos();
+    renderCatalogState();
+    renderControls();
+    updateLive();
+  }
+
+  // ---------- input ----------
+  let drag = null, hintGone = false;
+  function hideHint() { if (!hintGone) { hintGone = true; $("hint").classList.add("gone"); } }
+  function wire() {
+    $("catalog").addEventListener("click", (e) => {
+      const b = e.target.closest(".rot[data-i]");
+      if (!b) return;
+      request(EL[+b.dataset.i], e.shiftKey);
+    });
+    $("catalog").addEventListener("pointerover", (e) => {
+      const b = e.target.closest(".rot[data-i]");
+      const el = b ? EL[+b.dataset.i] : null;
+      if (el !== hoverEl) { hoverEl = el; kick(); }
+    });
+    $("catalog").addEventListener("pointerleave", () => { hoverEl = null; kick(); });
+    $("pos-where").addEventListener("click", (e) => {
+      const b = e.target.closest(".tl-col");
+      if (b) setFocus(+b.dataset.cube);
+    });
+    $("coords").addEventListener("click", (e) => {
+      const b = e.target.closest(".crow");
+      if (b) setFocus(+b.dataset.cube);
+    });
+    document.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
+    document.querySelectorAll(".tog").forEach((b) => b.addEventListener("click", () => {
+      show[b.dataset.show] = !show[b.dataset.show];
+      if (b.dataset.show === "cubes" && !show.cubes) focus = 0;
+      store.set("dodeca.show", JSON.stringify(show));
+      renderPos();
+      renderControls();
+      kick();
+    }));
+    document.querySelectorAll("[data-speed]").forEach((b) => b.addEventListener("click", () => {
+      speed = b.dataset.speed;
+      store.set("dodeca.speed", speed);
+      renderControls();
+    }));
+    $("btn-play").addEventListener("click", playPause);
+    $("btn-undo").addEventListener("click", undo);
+    $("btn-reset").addEventListener("click", reset);
+    $("btn-tour").addEventListener("click", playAll);
+    $("btn-view").addEventListener("click", viewAlongAxis);
+    $("btn-full").addEventListener("click", toggleFull);
+    $("scrub").addEventListener("input", () => {
+      if (!cur || !cur.el.ang) return;
+      stopTour();
+      queue.length = 0;
+      cur.playing = false;
+      cur.p = +$("scrub").value / 1000;
+      cur.tau = easeInv(cur.p);
+      renderAll();
+      kick();
+    });
+
+    // One pointer turns the view at a time; a second finger or a non-primary mouse button is ignored.
+    cv.addEventListener("pointerdown", (e) => {
+      if (drag || (e.pointerType === "mouse" && e.button !== 0)) return;
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      camAnim = null;
+      try { cv.setPointerCapture(e.pointerId); } catch (err) { /* pointer already released */ }
+      cv.classList.add("dragging");
+    });
+    cv.addEventListener("pointermove", (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      if (e.pointerType === "mouse" && !(e.buttons & 1)) { endDrag(); return; }
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      drag.x = e.clientX;
+      drag.y = e.clientY;
+      if (!dx && !dy) return;
+      view.az -= dx * 0.008;
+      view.el = clamp(view.el + dy * 0.008, -1.5, 1.5);
+      if (viewSaved) { viewSaved = null; renderControls(); }
+      hideHint();
+      kick();
+    });
+    function endDrag() { drag = null; cv.classList.remove("dragging"); }
+    const endOwn = (e) => { if (drag && e.pointerId === drag.id) endDrag(); };
+    cv.addEventListener("pointerup", endOwn);
+    cv.addEventListener("pointercancel", endOwn);
+    cv.addEventListener("lostpointercapture", endOwn);
+    cv.addEventListener("dblclick", () => { viewSaved = null; animateView(DEFAULT_VIEW); renderControls(); });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const inRange = e.target && e.target.id === "scrub";
+      const k = e.key;
+      if (k === " ") {
+        // A focused control keeps its own Space action (for keyboard users); otherwise Space plays or pauses.
+        if (e.target && e.target.closest && e.target.closest("button, a, select, textarea, input:not([type=range])")) return;
+        e.preventDefault();
+        if (!e.repeat) playPause();
+        return;
+      }
+      if (k === "Escape") {
+        stopTour();
+        cancelPending();
+        queue.length = 0;
+        if (cur && cur.playing) { cur.playing = false; renderAll(); }
+        return;
+      }
+      if (k.startsWith("Arrow")) {
+        if (inRange) return;
+        e.preventDefault();
+        camAnim = null;
+        if (k === "ArrowLeft") view.az += 0.13;
+        if (k === "ArrowRight") view.az -= 0.13;
+        if (k === "ArrowUp") view.el = clamp(view.el + 0.13, -1.5, 1.5);
+        if (k === "ArrowDown") view.el = clamp(view.el - 0.13, -1.5, 1.5);
+        if (viewSaved) { viewSaved = null; renderControls(); }
+        hideHint();
+        kick();
+        return;
+      }
+      if (e.repeat) return;
+      if (/^[0-5]$/.test(k)) { setFocus(+k); return; }
+      switch (k.toLowerCase()) {
+        case "z": case "backspace": e.preventDefault(); undo(); break;
+        case "r": reset(); break;
+        case "a": playAll(); break;
+        case "v": viewAlongAxis(); break;
+        case "f": toggleFull(); break;
+        case "c": setTab(tab === "coords" ? "rot" : "coords"); break;
+      }
+    });
+    // A mouse click shouldn't leave keyboard focus on a button, so that Space still plays or pauses afterwards.
+    document.addEventListener("click", (e) => { const b = e.detail > 0 && e.target.closest && e.target.closest("button"); if (b) b.blur(); });
+
+    new ResizeObserver(resize).observe(vp);
+    // Moving the window to a screen with a different pixel density changes devicePixelRatio but not the layout.
+    const watchDpr = () => {
+      const m = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+      if (m.addEventListener) m.addEventListener("change", () => { resize(); watchDpr(); }, { once: true });
+    };
+    watchDpr();
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const retheme = () => { THEME = null; kick(); };
+    if (mq.addEventListener) mq.addEventListener("change", retheme);
+    new MutationObserver(retheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class", "style"] });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => kick());
+  }
+  function toggleFull() {
+    try {
+      if (document.fullscreenElement) { document.exitFullscreen(); return; }
+      const req = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+      if (req && req.catch) req.catch(() => {});
+    } catch (e) { /* full screen unavailable */ }
+  }
+
+  // ---------- startup ----------
+  function start(saved) {
+    saved = saved || {};
+    const s = store.get("dodeca.speed");
+    if (s && SPEEDS[s]) speed = s;
+    try { Object.assign(show, JSON.parse(store.get("dodeca.show") || "{}")); } catch (e) { /* ignore */ }
+    if (saved.show) Object.assign(show, saved.show);
+    if (saved.speed && SPEEDS[saved.speed]) speed = saved.speed;
+    if (saved.view) { view.az = saved.view.az; view.el = saved.view.el; }
+    if (saved.focus >= 1 && saved.focus <= 5) focus = saved.focus;
+    if (store.get("dodeca.tab") === "coords") tab = "coords";
+    if (saved.tab) tab = saved.tab === "coords" ? "coords" : "rot";
+    wire();
+    buildCatalog();
+    buildCoords();
+    preload(FTURN[0][0]);
+    if (Array.isArray(saved.hist) && saved.hist.length && saved.hist.every((i) => EL[i])) {
+      const h = saved.hist;
+      base = I3;
+      h.slice(0, -1).forEach((i) => { base = snapG(mm(EL[i].M, base)); });
+      hist = h.slice(0, -1);
+      cur = { kind: "move", el: EL[h[h.length - 1]], p: 1, tau: 1, dir: 1, playing: false, histAfter: h.slice() };
+    }
+    renderAll();
+    resize();
+  }
+
+  window.__dodeca = {
+    EL, action, permText, sign, VERTS, CUBES, MIDS, RIDGE, EDGES: DODEC.edges,
+    setTimeScale(k) { timeScale = k; },
+    // Advance the animation clock by ms without waiting for the browser (used by the tests).
+    tick(ms) { if (raf) { cancelAnimationFrame(raf); raf = 0; } frame(lastTs + ms); },
+    // Screen position (CSS pixels) of a fixed point of space, the camera position, and the dot radius, for checking the picture.
+    project(P) { cam = camFrame(); const q = proj(P); return [q[0], q[1]]; },
+    cameraPos() { return camFrame().pos; },
+    dotRadius,
+    // Where the axis names (centers) and vertex coordinates (boxes) were drawn on the last frame, in CSS pixels.
+    labels() { return labelsDrawn; },
+    state() {
+      const st = posState();
+      return { tab, settled: !(cur && cur.playing) && !queue.length && !touring, inTransit: !st, G: st ? st.G : null, hist: st ? st.h.slice() : null, focus, cur: cur && { idx: cur.el.idx, p: cur.p, kind: cur.kind, dir: cur.dir } };
+    },
+  };
+
+  window.claude?.hot?.snapshot?.(() => {
+    const st = posState();
+    return { hist: st ? st.h : hist, view: { az: view.az, el: view.el }, show, speed, focus, tab };
+  });
+  if (window.claude?.hot?.ready) window.claude.hot.ready(start);
+  else start(window.claude?.hot?.data ?? {});
+})();
+</script>
+</body>
+</html>
